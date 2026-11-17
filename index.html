@@ -1,0 +1,550 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Pesos, dólares y soles</title>
+<meta name="description" content="Conversor de pesos chilenos, dólares y soles con la tasa del día.">
+<meta name="theme-color" content="#0f2620">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png" type="image/png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Cambio PE">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Inter:wght@400;500;600&display=swap">
+<style>
+*, *::before, *::after { box-sizing: border-box; }
+/* Layout: app de bolsillo en una columna. Arriba la tasa del día como dato principal; al centro el conversor como un vale de cambio; abajo precios de referencia y el ajuste de tasas plegado. */
+:root {
+  --bg: #eef1ed;
+  --surface: #ffffff;
+  --ink: #0f2620;
+  --muted: #5d6b65;
+  --line: #dde3de;
+  --accent: #0a7a63;
+  --accent-ink: #ffffff;
+  --accent-soft: #e0f0ea;
+  --hero: #0f2620;
+  --hero-ink: #eaf3ef;
+  --hero-muted: #9fb8ae;
+  --gold: #e0a526;
+  --warn: #9a5b00;
+  --font-display: "Bricolage Grotesque", "Avenir Next", system-ui, sans-serif;
+  --font-body: "Inter", -apple-system, "Segoe UI", system-ui, sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0b1210; --surface: #141d1a; --ink: #e5eeea; --muted: #94a59d; --line: #25322d;
+    --accent: #3fc29c; --accent-ink: #062018; --accent-soft: #17302a;
+    --hero: #13231e; --hero-ink: #eaf3ef; --hero-muted: #8fa89e; --gold: #f0b93c; --warn: #e7b65a;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0b1210; --surface: #141d1a; --ink: #e5eeea; --muted: #94a59d; --line: #25322d;
+  --accent: #3fc29c; --accent-ink: #062018; --accent-soft: #17302a;
+  --hero: #13231e; --hero-ink: #eaf3ef; --hero-muted: #8fa89e; --gold: #f0b93c; --warn: #e7b65a;
+  color-scheme: dark;
+}
+html, body { background: var(--bg); color: var(--ink); margin: 0; }
+body {
+  font-family: var(--font-body); font-size: 16px; line-height: 1.45;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-top: max(16px, env(safe-area-inset-top, 0px));
+  padding-bottom: max(40px, env(safe-area-inset-bottom, 0px));
+  -webkit-text-size-adjust: 100%;
+}
+.app { max-width: 440px; margin: 0 auto; display: flex; flex-direction: column; gap: 18px; }
+.num { font-variant-numeric: tabular-nums; }
+
+/* Barra superior */
+.top { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.brand { font-family: var(--font-display); font-weight: 700; font-size: 1.05rem; letter-spacing: -0.01em; margin: 0; }
+.pill {
+  display: inline-flex; align-items: center; gap: 6px; padding: 5px 10px; border-radius: 999px;
+  background: var(--surface); border: 1px solid var(--line); font-size: 0.75rem; color: var(--muted);
+  white-space: nowrap;
+}
+button.pill { font: inherit; font-size: 0.75rem; cursor: pointer; }
+.pill i { width: 7px; height: 7px; border-radius: 50%; background: var(--muted); display: inline-block; }
+.pill[data-state="live"] i { background: var(--accent); }
+.pill[data-state="stale"] i, .pill[data-state="manual"] i { background: var(--gold); }
+
+/* Tasa del día */
+.hero {
+  background: var(--hero); color: var(--hero-ink); border-radius: 20px;
+  padding: 18px 18px 14px; display: flex; flex-direction: column; gap: 10px;
+}
+.hero-label { font-size: 0.75rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--hero-muted); margin: 0; }
+.hero-main { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+.hero-main .from { font-family: var(--font-display); font-size: 1.4rem; font-weight: 500; color: var(--hero-muted); }
+.hero-main .eq { color: var(--hero-muted); font-size: 1.2rem; }
+.hero-main .to { font-family: var(--font-display); font-size: 3rem; font-weight: 700; line-height: 1; letter-spacing: -0.02em; color: var(--gold); }
+.hero-sub { display: flex; gap: 14px; flex-wrap: wrap; font-size: 0.85rem; color: var(--hero-muted); }
+.hero-sub b { color: var(--hero-ink); font-weight: 600; }
+.trend { display: flex; align-items: center; gap: 10px; min-height: 34px; }
+.trend svg { flex: 1; min-width: 0; height: 34px; }
+.trend small { color: var(--hero-muted); font-size: 0.75rem; }
+.delta { font-size: 0.78rem; font-weight: 600; }
+
+/* Conversor */
+.ticket { background: var(--surface); border: 1px solid var(--line); border-radius: 18px; overflow: hidden; }
+.row {
+  display: grid; grid-template-columns: auto 1fr; align-items: center; gap: 12px;
+  padding: 14px 16px; border-top: 1px dashed var(--line); cursor: text;
+}
+.row:first-child { border-top: 0; }
+.badge {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  width: 54px; height: 54px; border-radius: 14px; background: var(--bg); gap: 1px;
+}
+.badge b { font-family: var(--font-display); font-weight: 700; font-size: 1.05rem; line-height: 1; }
+.badge small { font-size: 0.62rem; letter-spacing: 0.08em; color: var(--muted); }
+.field { display: flex; flex-direction: column; min-width: 0; }
+.field label { font-size: 0.78rem; color: var(--muted); }
+.amount {
+  width: 100%; min-width: 0; border: 0; background: transparent; color: var(--ink);
+  font-family: var(--font-display); font-weight: 700; font-size: 1.85rem; letter-spacing: -0.01em;
+  padding: 0; font-variant-numeric: tabular-nums;
+}
+.amount:focus { outline: none; }
+.amount::placeholder { color: var(--line); }
+.row.active { background: var(--accent-soft); }
+.row.active .badge { background: var(--accent); color: var(--accent-ink); }
+.row.active .badge small { color: var(--accent-ink); opacity: 0.8; }
+.ticket-foot {
+  display: flex; justify-content: space-between; align-items: center; gap: 8px;
+  padding: 10px 16px; border-top: 1px solid var(--line); font-size: 0.8rem; color: var(--muted);
+}
+.link-btn {
+  border: 0; background: none; color: var(--accent); font: inherit; font-weight: 600; cursor: pointer; padding: 4px 0;
+}
+
+/* Precios de referencia */
+.section-title { font-family: var(--font-display); font-weight: 700; font-size: 1.05rem; margin: 0 0 8px; }
+.prices { background: var(--surface); border: 1px solid var(--line); border-radius: 18px; padding: 4px 0; }
+.price {
+  width: 100%; display: grid; grid-template-columns: 1fr auto auto; gap: 12px; align-items: baseline;
+  padding: 11px 16px; border: 0; background: none; color: var(--ink); font: inherit; text-align: left; cursor: pointer;
+}
+.price + .price { border-top: 1px solid var(--line); }
+.price .what { font-size: 0.95rem; }
+.price .pen { color: var(--muted); font-size: 0.88rem; }
+.price .clp { font-weight: 600; min-width: 5.5rem; text-align: right; }
+.price:active { background: var(--accent-soft); }
+.hint { color: var(--muted); font-size: 0.78rem; margin: 6px 4px 0; }
+
+/* Ajuste de tasas */
+details.rates { background: var(--surface); border: 1px solid var(--line); border-radius: 18px; }
+details.rates summary {
+  list-style: none; cursor: pointer; padding: 14px 16px; display: flex; justify-content: space-between; align-items: center;
+  font-family: var(--font-display); font-weight: 700; font-size: 1.05rem;
+}
+details.rates summary::-webkit-details-marker { display: none; }
+details.rates summary span { font-family: var(--font-body); font-weight: 500; font-size: 0.8rem; color: var(--muted); }
+.rates-body { padding: 0 16px 16px; display: flex; flex-direction: column; gap: 12px; }
+.rate { display: grid; grid-template-columns: 1fr 7.5rem; gap: 10px; align-items: center; }
+.rate label { font-size: 0.92rem; }
+.rate label small { display: block; color: var(--muted); font-size: 0.76rem; }
+.rate input {
+  width: 100%; min-width: 0; padding: 10px; border-radius: 10px; border: 1px solid var(--line);
+  background: var(--bg); color: var(--ink); font: inherit; font-weight: 600; text-align: right; font-variant-numeric: tabular-nums;
+}
+.pct { display: flex; align-items: center; gap: 6px; }
+.pct span { color: var(--muted); font-weight: 600; }
+.note { color: var(--muted); font-size: 0.8rem; margin: 0; }
+.install { background: var(--surface); border: 1px dashed var(--line); border-radius: 18px; padding: 14px 16px; display: flex; flex-direction: column; gap: 6px; }
+.install b { font-family: var(--font-display); font-size: 1rem; }
+.install p { margin: 0; font-size: 0.85rem; color: var(--muted); }
+.install .row-btns { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+.note a { color: var(--accent); }
+#rate-source { white-space: pre-line; line-height: 1.5; }
+.warn { color: var(--warn); font-size: 0.82rem; margin: 0; }
+.btn {
+  align-self: flex-start; border: 1px solid var(--line); background: var(--bg); color: var(--ink);
+  padding: 9px 14px; border-radius: 10px; font: inherit; font-size: 0.88rem; font-weight: 500; cursor: pointer;
+}
+button:focus-visible, input:focus-visible, summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+@media (prefers-reduced-motion: no-preference) {
+  .row, .badge { transition: background-color .15s ease, color .15s ease; }
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="top">
+    <p class="brand">Pesos · Dólares · Soles</p>
+    <button type="button" class="pill" id="status" data-state="idle" aria-label="Actualizar la tasa"><i></i><span id="status-text">Cargando tasa…</span></button>
+  </div>
+
+  <section class="hero" aria-labelledby="hero-label">
+    <p class="hero-label" id="hero-label">Para calcular de cabeza</p>
+    <div class="hero-main">
+      <span class="from">S/ 1</span><span class="eq">=</span><span class="to num" id="hero-sol">$295</span>
+    </div>
+    <div class="hero-sub num">
+      <span>US$ 1 = <b id="hero-clp">$1.001</b></span>
+      <span>US$ 1 = <b id="hero-pen">S/ 3,40</b></span>
+    </div>
+    <div class="trend" id="trend"><small>La tendencia aparece desde el segundo día de datos.</small></div>
+  </section>
+
+  <section class="ticket" aria-label="Conversor">
+    <div class="row" data-cur="pen">
+      <div class="badge"><b>S/</b><small>PEN</small></div>
+      <div class="field"><label for="amt-pen">Soles peruanos</label>
+        <input class="amount" id="amt-pen" data-cur="pen" inputmode="decimal" autocomplete="off" placeholder="0"></div>
+    </div>
+    <div class="row" data-cur="clp">
+      <div class="badge"><b>$</b><small>CLP</small></div>
+      <div class="field"><label for="amt-clp">Pesos chilenos</label>
+        <input class="amount" id="amt-clp" data-cur="clp" inputmode="decimal" autocomplete="off" placeholder="0"></div>
+    </div>
+    <div class="row" data-cur="usd">
+      <div class="badge"><b>US$</b><small>USD</small></div>
+      <div class="field"><label for="amt-usd">Dólares</label>
+        <input class="amount" id="amt-usd" data-cur="usd" inputmode="decimal" autocomplete="off" placeholder="0"></div>
+    </div>
+    <div class="ticket-foot">
+      <span>Escribe en cualquier moneda.</span>
+      <button class="link-btn" type="button" id="clear">Borrar</button>
+    </div>
+  </section>
+
+  <section aria-labelledby="prices-title">
+    <h2 class="section-title" id="prices-title">Precios típicos en Perú</h2>
+    <div class="prices" id="prices"></div>
+    <p class="hint">Valores aproximados en Lima. Toca uno para llevarlo al conversor.</p>
+  </section>
+
+  <section class="install" id="install" hidden aria-labelledby="install-title">
+    <b id="install-title">Instálala en tu celular</b>
+    <p>iPhone: en Safari, toca Compartir y luego «Agregar a inicio». Android: en Chrome, toca ⋮ y luego «Instalar app». Funciona sin señal con la última tasa guardada.</p>
+    <div class="row-btns"><button class="btn" type="button" id="install-btn" hidden>Instalar</button><button class="link-btn" type="button" id="install-hide">Ocultar</button></div>
+  </section>
+
+  <details class="rates" id="rates">
+    <summary>Ajustar tasas <span id="rates-mode">Automáticas</span></summary>
+    <div class="rates-body">
+      <div class="rate">
+        <label for="rate-margin">Margen de cambio<small>Lo que cobra la casa de cambio</small></label>
+        <div class="pct"><input id="rate-margin" inputmode="decimal" autocomplete="off"><span>%</span></div>
+      </div>
+      <div class="rate">
+        <label for="rate-clp">Pesos por US$ 1<small>Lo que pagas en Chile</small></label>
+        <input id="rate-clp" inputmode="decimal" autocomplete="off">
+      </div>
+      <div class="rate">
+        <label for="rate-pen">Soles por US$ 1<small>Lo que te dan en Perú</small></label>
+        <input id="rate-pen" inputmode="decimal" autocomplete="off">
+      </div>
+      <p class="warn" id="rate-error" hidden>Escribe una tasa mayor que cero.</p>
+      <p class="warn" id="margin-error" hidden>El margen va de 0 a 10 %.</p>
+      <p class="note" id="rate-source"></p>
+      <button class="btn" type="button" id="use-auto" hidden>Usar la tasa del día</button>
+      <p class="note">La tasa automática es la de mercado; el margen la acerca a lo que pagas de verdad (el 17 nov, Fintual cobraba 0,5 % sobre el mercado y TuCambista pagaba 0,4 % bajo él). Si escribes una tasa, la app usa la tuya hasta que toques «Usar la tasa del día». Los dólares en efectivo suelen costar 1 a 2 % más. Compara con <a href="https://dolar.cl/" target="_blank" rel="noopener">dolar.cl</a>.</p>
+    </div>
+  </details>
+</div>
+
+<script>
+(function () {
+  // Último valor conocido, por si el primer arranque es sin señal (medido el 17-nov-2026).
+  var FALLBACK = { clp_mkt: 995.95, pen_mkt: 3.411, fuente: "open.er-api.com", publicado: "2026-11-17T00:02:31Z", consultado: null };
+  var K_AUTO = "cambio-pe-auto", K_MANUAL = "cambio-pe-manual", K_MARGIN = "cambio-pe-margen", K_HIST = "cambio-pe-historial", K_HIDE = "cambio-pe-sin-aviso";
+  function load(k) { try { return JSON.parse(localStorage.getItem(k) || "null"); } catch (e) { return null; } }
+  function save(k, v) { try { if (v === null) localStorage.removeItem(k); else localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} }
+  function sane(clp, pen) { return clp >= 700 && clp <= 1400 && pen >= 2.8 && pen <= 4.5; }
+  function valid(r) { return r && sane(r.clp_mkt, r.pen_mkt); }
+
+  var auto = valid(load(K_AUTO)) ? load(K_AUTO) : FALLBACK;
+  var manual = load(K_MANUAL); if (!(manual && manual.clp > 0 && manual.pen > 0)) manual = null;
+  var margin = load(K_MARGIN); if (typeof margin !== "number" || !(margin >= 0 && margin <= 10)) margin = 0.5;
+  var history = load(K_HIST); if (!Array.isArray(history)) history = [];
+  var netState = "loading"; // loading | live | offline
+
+  // Lo que pagas por un dólar en Chile sube con el margen; lo que te dan en Perú baja.
+  function rates() {
+    if (manual) return { clp: manual.clp, pen: manual.pen };
+    return { clp: auto.clp_mkt * (1 + margin / 100), pen: auto.pen_mkt * (1 - margin / 100) };
+  }
+
+  var fmt = {
+    clp: new Intl.NumberFormat("es-CL", { maximumFractionDigits: 0 }),
+    usd: new Intl.NumberFormat("es-CL", { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+    pen: new Intl.NumberFormat("es-CL", { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+    rate: new Intl.NumberFormat("es-CL", { minimumFractionDigits: 2, maximumFractionDigits: 4 })
+  };
+  var fmtDate = new Intl.DateTimeFormat("es-CL", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", hourCycle: "h23", timeZone: "America/Santiago" });
+  function penShort(v) { return "S/ " + fmt.pen.format(v).replace(/,00$/, ""); }
+
+  // Acepta "1.000", "1.000,50", "1000,5", "12.5" y "12,50".
+  function parse(text) {
+    var s = String(text || "").replace(/[^\d.,]/g, "");
+    if (!s) return NaN;
+    if (s.indexOf(",") >= 0) s = s.replace(/\./g, "").replace(",", ".").replace(/,/g, "");
+    else if ((s.match(/\./g) || []).length > 1 || /^\d{1,3}\.\d{3}$/.test(s)) s = s.replace(/\./g, "");
+    return parseFloat(s);
+  }
+
+  // Todo pasa por dólares.
+  function toUsd(cur, v) { var r = rates(); return cur === "usd" ? v : cur === "clp" ? v / r.clp : v / r.pen; }
+  function fromUsd(cur, u) { var r = rates(); return cur === "usd" ? u : cur === "clp" ? u * r.clp : u * r.pen; }
+
+  var inputs = Array.prototype.slice.call(document.querySelectorAll(".amount"));
+  var lastCur = "pen", lastVal = 100;
+
+  function setActive(cur) {
+    Array.prototype.forEach.call(document.querySelectorAll(".row"), function (row) {
+      row.classList.toggle("active", row.dataset.cur === cur);
+    });
+  }
+
+  function renderAmounts(skipCur) {
+    inputs.forEach(function (el) {
+      var cur = el.dataset.cur;
+      if (cur === skipCur) return;
+      el.value = lastVal === null ? "" : fmt[cur].format(fromUsd(cur, toUsd(lastCur, lastVal)));
+    });
+  }
+
+  function renderHero() {
+    var r = rates();
+    document.getElementById("hero-sol").textContent = "$" + fmt.clp.format(r.clp / r.pen);
+    document.getElementById("hero-clp").textContent = "$" + fmt.clp.format(r.clp);
+    document.getElementById("hero-pen").textContent = "S/ " + fmt.pen.format(r.pen);
+    renderTrend();
+  }
+
+  function renderTrend() {
+    var box = document.getElementById("trend");
+    var pts = history.slice(-14).filter(function (h) { return sane(h.clp, h.pen); })
+      .map(function (h) { return { d: h.fecha, v: h.clp / h.pen }; });
+    if (pts.length < 2) {
+      box.innerHTML = "<small>La tendencia aparece desde el segundo día de datos.</small>";
+      return;
+    }
+    var w = 200, h = 34, pad = 3;
+    var vs = pts.map(function (p) { return p.v; });
+    var min = Math.min.apply(null, vs), max = Math.max.apply(null, vs);
+    if (max - min < 0.5) { min -= 0.25; max += 0.25; }
+    var xy = pts.map(function (p, i) {
+      return [pad + i * (w - 2 * pad) / (pts.length - 1), pad + (h - 2 * pad) * (1 - (p.v - min) / (max - min))];
+    });
+    var line = xy.map(function (q) { return q[0].toFixed(1) + "," + q[1].toFixed(1); }).join(" ");
+    var area = "M" + xy[0][0] + "," + h + " L" + line.replace(/ /g, " L") + " L" + xy[xy.length - 1][0] + "," + h + " Z";
+    var last = xy[xy.length - 1];
+    var diff = vs[vs.length - 1] - vs[0];
+    var pct = diff / vs[0] * 100;
+    var sign = diff > 0 ? "+" : diff < 0 ? "−" : "";
+    box.innerHTML =
+      '<svg viewBox="0 0 ' + w + ' ' + h + '" preserveAspectRatio="none" role="img" aria-label="Valor del sol en pesos, últimos ' + pts.length + ' días">' +
+      '<path d="' + area + '" fill="var(--gold)" fill-opacity="0.14"></path>' +
+      '<polyline points="' + line + '" fill="none" stroke="var(--gold)" stroke-width="1.6" vector-effect="non-scaling-stroke"></polyline>' +
+      '<circle cx="' + last[0] + '" cy="' + last[1] + '" r="2.6" fill="var(--gold)"></circle></svg>' +
+      '<span class="delta num" style="color:var(--hero-ink)">' + sign + fmt.usd.format(Math.abs(pct)) + ' %</span>' +
+      '<small>' + pts.length + ' días</small>';
+  }
+
+  function renderPrices() {
+    var r = rates();
+    var items = [
+      ["Pasaje de bus urbano", 1.5], ["Café", 9], ["Menú del día", 15], ["Taxi corto", 20],
+      ["Entrada a museo", 30], ["Cena para dos", 150], ["Noche de hotel", 250]
+    ];
+    var box = document.getElementById("prices");
+    box.innerHTML = "";
+    items.forEach(function (it) {
+      var b = document.createElement("button");
+      b.type = "button"; b.className = "price num";
+      var clp = "$" + fmt.clp.format(it[1] * r.clp / r.pen);
+      b.innerHTML = '<span class="what"></span><span class="pen"></span><span class="clp"></span>';
+      b.querySelector(".what").textContent = it[0];
+      b.querySelector(".pen").textContent = penShort(it[1]);
+      b.querySelector(".clp").textContent = clp;
+      b.addEventListener("click", function () {
+        lastCur = "pen"; lastVal = it[1];
+        document.getElementById("amt-pen").value = fmt.pen.format(it[1]);
+        setActive("pen"); renderAmounts("pen");
+        document.querySelector(".ticket").scrollIntoView({ behavior: "smooth", block: "center" });
+      });
+      box.appendChild(b);
+    });
+  }
+
+  function hoursSince(iso) { var t = Date.parse(iso); return isFinite(t) ? (Date.now() - t) / 36e5 : Infinity; }
+
+  function renderStatus() {
+    var pill = document.getElementById("status"), txt = document.getElementById("status-text");
+    var src = document.getElementById("rate-source"), mode = document.getElementById("rates-mode");
+    var useAuto = document.getElementById("use-auto");
+    var whenIso = auto.consultado || auto.publicado;
+    var age = hoursSince(whenIso);
+    var when = isFinite(Date.parse(whenIso)) ? fmtDate.format(new Date(whenIso)) : "";
+    if (manual) {
+      pill.dataset.state = "manual"; txt.textContent = "Tasas tuyas";
+      mode.textContent = "Manuales"; useAuto.hidden = false;
+    } else if (netState === "loading") {
+      pill.dataset.state = "idle"; txt.textContent = "Buscando la tasa del día…";
+      mode.textContent = "Automáticas"; useAuto.hidden = true;
+    } else if (netState === "offline" || age > 48) {
+      pill.dataset.state = "stale"; txt.textContent = (netState === "offline" ? "Sin señal · " : "Tasa del ") + when;
+      mode.textContent = "Automáticas"; useAuto.hidden = true;
+    } else {
+      pill.dataset.state = "live"; txt.textContent = "Al día · " + when;
+      mode.textContent = "Automáticas"; useAuto.hidden = true;
+    }
+    var line = "Mercado: US$ 1 = $" + fmt.usd.format(auto.clp_mkt) + " = S/ " + fmt.rate.format(auto.pen_mkt) +
+      "\nFuente: " + auto.fuente + (isFinite(Date.parse(auto.publicado)) ? " · publicado " + fmtDate.format(new Date(auto.publicado)) : "");
+    if (netState === "offline") line += "\nSin conexión: se usa la última tasa guardada en este teléfono. Toca la pastilla de arriba para reintentar.";
+    src.textContent = line;
+  }
+
+  function showRateInputs() {
+    var r = rates();
+    document.getElementById("rate-clp").value = fmt.usd.format(r.clp);
+    document.getElementById("rate-pen").value = fmt.rate.format(r.pen);
+    if (document.activeElement !== document.getElementById("rate-margin"))
+      document.getElementById("rate-margin").value = String(margin).replace(".", ",");
+  }
+
+  function renderAll() {
+    renderHero(); renderPrices(); renderStatus(); renderAmounts(lastCur);
+    var active = document.activeElement;
+    if (!(active && (active.id === "rate-clp" || active.id === "rate-pen"))) showRateInputs();
+  }
+
+  // Conversor
+  inputs.forEach(function (el) {
+    el.addEventListener("focus", function () { setActive(el.dataset.cur); el.select(); });
+    el.addEventListener("input", function () {
+      var v = parse(el.value);
+      lastCur = el.dataset.cur; lastVal = isFinite(v) ? v : null;
+      renderAmounts(lastCur);
+    });
+    el.addEventListener("blur", function () {
+      var v = parse(el.value);
+      if (isFinite(v)) el.value = fmt[el.dataset.cur].format(v);
+    });
+  });
+  Array.prototype.forEach.call(document.querySelectorAll(".row"), function (row) {
+    row.addEventListener("click", function (e) { if (e.target.tagName !== "INPUT") row.querySelector("input").focus(); });
+  });
+  document.getElementById("clear").addEventListener("click", function () {
+    lastVal = null; inputs.forEach(function (o) { o.value = ""; });
+    document.getElementById("amt-" + lastCur).focus();
+  });
+
+  // Tasas manuales
+  var err = document.getElementById("rate-error");
+  function onRate() {
+    var c = parse(document.getElementById("rate-clp").value), p = parse(document.getElementById("rate-pen").value);
+    if (!(c > 0) || !(p > 0)) { err.hidden = false; return; }
+    err.hidden = true;
+    manual = { clp: c, pen: p }; save(K_MANUAL, manual);
+    renderHero(); renderPrices(); renderStatus(); renderAmounts(null);
+  }
+  ["rate-clp", "rate-pen"].forEach(function (id) {
+    var el = document.getElementById(id);
+    el.addEventListener("input", onRate);
+    el.addEventListener("focus", function () { el.select(); });
+    el.addEventListener("blur", function () { if (err.hidden) showRateInputs(); });
+  });
+  var mErr = document.getElementById("margin-error");
+  var mEl = document.getElementById("rate-margin");
+  mEl.addEventListener("input", function () {
+    var v = parse(mEl.value);
+    if (!(v >= 0 && v <= 10)) { mErr.hidden = false; return; }
+    mErr.hidden = true; margin = v; save(K_MARGIN, margin);
+    renderHero(); renderPrices(); renderAmounts(null);
+    document.getElementById("rate-clp").value = fmt.usd.format(rates().clp);
+    document.getElementById("rate-pen").value = fmt.rate.format(rates().pen);
+  });
+  mEl.addEventListener("focus", function () { mEl.select(); });
+  mEl.addEventListener("blur", function () { mErr.hidden = true; showRateInputs(); });
+  document.getElementById("use-auto").addEventListener("click", function () {
+    manual = null; save(K_MANUAL, null); err.hidden = true; renderAll();
+  });
+
+  // Inicio
+  setActive("pen");
+  document.getElementById("amt-pen").value = fmt.pen.format(lastVal);
+  renderAll();
+
+  // Tasa del día desde internet: fuentes gratuitas que permiten leer desde cualquier página.
+  function fromCurrencyApi(name) {
+    return function (d) { return { clp: d.usd && d.usd.clp, pen: d.usd && d.usd.pen, publicado: d.date ? d.date + "T12:00:00Z" : null, fuente: name }; };
+  }
+  var SOURCES = [
+    { url: "https://open.er-api.com/v6/latest/USD",
+      read: function (d) { return { clp: d.rates && d.rates.CLP, pen: d.rates && d.rates.PEN,
+        publicado: d.time_last_update_unix ? new Date(d.time_last_update_unix * 1000).toISOString() : null, fuente: "open.er-api.com" }; } },
+    { url: "https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@latest/v1/currencies/usd.json", read: fromCurrencyApi("currency-api (jsDelivr)") },
+    { url: "https://latest.currency-api.pages.dev/v1/currencies/usd.json", read: fromCurrencyApi("currency-api (Cloudflare)") }
+  ];
+  function getJSON(url) {
+    var ctrl = window.AbortController ? new AbortController() : null;
+    var t = setTimeout(function () { if (ctrl) ctrl.abort(); }, 8000);
+    return fetch(url, { cache: "no-store", signal: ctrl ? ctrl.signal : undefined })
+      .then(function (r) { clearTimeout(t); if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); },
+            function (e) { clearTimeout(t); throw e; });
+  }
+  function tryFrom(i) {
+    if (i >= SOURCES.length) return Promise.reject(new Error("sin fuentes"));
+    return getJSON(SOURCES[i].url).then(function (d) {
+      var x = SOURCES[i].read(d);
+      if (!sane(x.clp, x.pen)) throw new Error("valor fuera de rango");
+      return x;
+    }).catch(function () { return tryFrom(i + 1); });
+  }
+  function remember(x) {
+    var fecha = new Date().toLocaleDateString("en-CA", { timeZone: "America/Santiago" });
+    history = history.filter(function (h) { return h.fecha !== fecha; });
+    history.push({ fecha: fecha, clp: x.clp, pen: x.pen });
+    history.sort(function (a, b) { return a.fecha < b.fecha ? -1 : 1; });
+    history = history.slice(-30);
+    save(K_HIST, history);
+  }
+  var busy = false;
+  function refresh() {
+    if (busy) return;
+    busy = true; netState = "loading"; renderStatus();
+    tryFrom(0).then(function (x) {
+      auto = { clp_mkt: x.clp, pen_mkt: x.pen, fuente: x.fuente, publicado: x.publicado, consultado: new Date().toISOString() };
+      save(K_AUTO, auto); remember(x); netState = "live";
+    }, function () { netState = "offline"; })
+      .then(function () { busy = false; renderAll(); });
+  }
+  document.getElementById("status").addEventListener("click", refresh);
+  document.addEventListener("visibilitychange", function () {
+    if (document.visibilityState === "visible" && hoursSince(auto.consultado) > 1) refresh();
+  });
+  window.addEventListener("online", refresh);
+  refresh();
+
+  // Instalación en el celular
+  var standalone = (window.matchMedia && matchMedia("(display-mode: standalone)").matches) || navigator.standalone === true;
+  var install = document.getElementById("install"), installBtn = document.getElementById("install-btn"), deferred = null;
+  if (!standalone && !load(K_HIDE)) install.hidden = false;
+  window.addEventListener("beforeinstallprompt", function (e) {
+    e.preventDefault(); deferred = e; installBtn.hidden = false;
+  });
+  installBtn.addEventListener("click", function () {
+    if (!deferred) return;
+    deferred.prompt();
+    deferred.userChoice.then(function () { deferred = null; installBtn.hidden = true; });
+  });
+  document.getElementById("install-hide").addEventListener("click", function () { install.hidden = true; save(K_HIDE, true); });
+  window.addEventListener("appinstalled", function () { install.hidden = true; });
+
+  if ("serviceWorker" in navigator && (location.protocol === "https:" || location.hostname === "localhost" || location.hostname === "127.0.0.1")) {
+    navigator.serviceWorker.register("sw.js").catch(function () {});
+  }
+})();
+</script>
+</body>
+</html>
