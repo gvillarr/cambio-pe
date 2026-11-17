@@ -250,6 +250,7 @@ button:focus-visible, input:focus-visible, summary:focus-visible { outline: 2px 
       <p class="note">La tasa automática es la de mercado; el margen la acerca a lo que pagas de verdad (el 17 nov, Fintual cobraba 0,5 % sobre el mercado y TuCambista pagaba 0,4 % bajo él). Si escribes una tasa, la app usa la tuya hasta que toques «Usar la tasa del día». Los dólares en efectivo suelen costar 1 a 2 % más. Compara con <a href="https://dolar.cl/" target="_blank" rel="noopener">dolar.cl</a>.</p>
     </div>
   </details>
+  <p class="note" style="text-align:center">Versión 3 · 17 nov</p>
 </div>
 
 <script>
@@ -543,7 +544,7 @@ button:focus-visible, input:focus-visible, summary:focus-visible { outline: 2px 
   window.addEventListener("appinstalled", function () { install.hidden = true; });
 
   if ("serviceWorker" in navigator && (location.protocol === "https:" || location.hostname === "localhost" || location.hostname === "127.0.0.1")) {
-    navigator.serviceWorker.register("sw.js").catch(function () {});
+    navigator.serviceWorker.register("sw.js", { updateViaCache: "none" }).catch(function () {});
   }
 })();
 </script>
