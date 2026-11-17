@@ -1,6 +1,6 @@
 // Guarda la app en el teléfono para que abra sin señal.
 // La tasa NO pasa por aquí: la página guarda la última en su propio almacenamiento.
-const CACHE = "cambio-pe-v1";
+const CACHE = "cambio-pe-v2";
 const SHELL = ["./", "index.html", "manifest.webmanifest", "icon-192.png", "icon-512.png", "apple-touch-icon.png"];
 
 self.addEventListener("install", (e) => {
